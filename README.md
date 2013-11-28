@@ -1,4 +1,4 @@
-safecloud
+SafeCloud
 =========
 
-p2p bittorrent-like safe cloud
+p2p bittorrent-like cloud
