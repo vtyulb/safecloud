@@ -17,9 +17,17 @@ LIBS += \
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    safecloudclient.cpp \
+    fileimagestree.cpp \
+    fileimage.cpp \
+    fileimagestreeview.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    safecloudclient.h \
+    fileimagestree.h \
+    fileimage.h \
+    fileimagestreeview.h
 
 FORMS    += mainwindow.ui
 
