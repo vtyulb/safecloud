@@ -4,6 +4,9 @@
 #include <QThread>
 #include <QTcpSocket>
 #include <QDebug>
+#include <QSqlDatabase>
+
+#define MAX_TIMEOUT 3000
 
 enum {
     Auth,
@@ -13,12 +16,16 @@ enum {
 class Connection : public QThread {
     Q_OBJECT
 public:
-    explicit Connection(qintptr handle, QObject *parent = 0);
+    explicit Connection(qintptr handle, QString login, QString password, QObject *parent = 0);
 
 private:
     qintptr socketHandle;
-    void run();
     QTcpSocket *socket;
+    QString mySqlLogin;
+    QString mySqlPassword;
+
+    void run();
+    void authorization();
 
 private slots:
     void timeToRead();

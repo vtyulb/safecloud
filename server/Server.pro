@@ -6,11 +6,10 @@
 
 QT       += core
 QT       -= gui
-QT       += network
+QT       += network sql
 
 TARGET = Server
 CONFIG   += console
-CONFIG   -= app_bundle
 
 TEMPLATE = app
 
