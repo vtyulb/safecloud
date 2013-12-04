@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "serverconnection.h"
 
 namespace Ui {
 class MainWindow;
@@ -17,6 +18,12 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    ServerConnection *serverConnection;
+
+public slots:
+    void logIn();
+    void displayLogMessage(const QString &message);
+
 };
 
 #endif // MAINWINDOW_H

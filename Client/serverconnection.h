@@ -13,7 +13,7 @@ class ServerConnection : public QObject
 public:
     explicit ServerConnection(QObject *parent = 0);
     ~ServerConnection();
-    void connect(int ip, int port);
+    void connect(const QString &address, int port);
     void authorization(const QString &login, const QString &password);
 
 private:
