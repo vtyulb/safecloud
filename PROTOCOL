@@ -1,0 +1,11 @@
+server -> client "auth?v=xx\n"
+client -> server "Login\n"
+client -> server "Password\n" (password hashed by blowfish with salt "Login" and 1000000 rounds)
+
+server -> client one byte
+11 - timeout
+12 - internal server error
+13 - password incorrect / login not found
+200 - OK
+
+If not 200 client can send login and password again.

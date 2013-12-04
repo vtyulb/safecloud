@@ -2,6 +2,7 @@
 #include <QSqlError>
 #include <QStringList>
 #include <QSqlQuery>
+#include <QHostAddress>
 
 Connection::Connection(qintptr handle, QString login, QString password, QObject *parent): QThread(parent) {
     socketHandle = handle;
@@ -24,7 +25,7 @@ void Connection::run() {
 
     //TODO: version protocol
 
-    socket->write("auth\n");
+    socket->write("auth?v=1\n");
     QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(timeToRead()));
     QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(quit()));
     exec();
@@ -33,6 +34,7 @@ void Connection::run() {
 void Connection::authorization() {
     QByteArray login = socket->readLine();
     if (!socket->waitForReadyRead(MAX_TIMEOUT)) {
+        socket->write(TIMEOUT_ERROR);
         qDebug() << "Too slow!";
         return;
     }
@@ -51,19 +53,23 @@ void Connection::authorization() {
 
     if (!db.open()) {
         qDebug() << "Failed to connect to database" << db.lastError();
-        socket->write("Corrupted database, please contact support\n");
+        socket->write(INTERNAL_SERVER_ERROR);
         return;
     } else {
         QSqlQuery query(QString("SELECT PASSWORD FROM `main` WHERE (LOGIN=%1)").arg(QString(login)), db);
         query.exec();
         if (query.next()) {
             if (query.value(0).toString() == hash) {
-                socket->write("authorized\n");
+                socket->write(OK);
                 state = Normal;
-            } else
-                socket->write("Access denied\n");
+                qDebug() << "Authorized from" << socket->peerAddress();
+            } else {
+                socket->write(FAIL);
+                qDebug() << "Password incorrect" << socket->peerAddress();
+            }
         } else {
-            socket->write("Login not found\n");
+            socket->write(FAIL);
+            qDebug() << "Login not found" << socket->peerAddress();
         }
     }
 }
