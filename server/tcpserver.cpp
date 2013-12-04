@@ -5,7 +5,7 @@ TcpServer::TcpServer(QObject *parent): QTcpServer(parent) {
     login = settings.value("login").toString();
     password = settings.value("password").toString();
 
-    qDebug() << QSqlDatabase::isDriverAvailable("QMYSQL");
+    qDebug() << "Driver is available: " << QSqlDatabase::isDriverAvailable("QMYSQL");
 }
 
 void TcpServer::incomingConnection(qintptr handle) {

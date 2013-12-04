@@ -1,6 +1,7 @@
 #include "connection.h"
 #include <QSqlError>
 #include <QStringList>
+#include <QSqlQuery>
 
 Connection::Connection(qintptr handle, QString login, QString password, QObject *parent): QThread(parent) {
     socketHandle = handle;
@@ -37,8 +38,10 @@ void Connection::authorization() {
     }
     QByteArray hash = socket->readLine();
 
-    qDebug() << mySqlLogin << mySqlPassword;
-    qDebug() << QSqlDatabase::drivers();
+    login.resize(login.size() - 1);
+    hash.resize(hash.size() - 1);
+
+    qDebug() << "Checking: " << QString(login) << QString(hash);
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
     db.setHostName("localhost");
@@ -46,13 +49,23 @@ void Connection::authorization() {
     db.setUserName(mySqlLogin);
     db.setPassword(mySqlPassword);
 
-    qDebug() << db.lastError();
     if (!db.open()) {
-        qDebug() << "Failed to connect to database";
+        qDebug() << "Failed to connect to database" << db.lastError();
         socket->write("Corrupted database, please contact support\n");
         return;
-    } else
-        qDebug() << "success";
+    } else {
+        QSqlQuery query(QString("SELECT PASSWORD FROM `main` WHERE (LOGIN=%1)").arg(QString(login)), db);
+        query.exec();
+        if (query.next()) {
+            if (query.value(0).toString() == hash) {
+                socket->write("authorized\n");
+                state = Normal;
+            } else
+                socket->write("Access denied\n");
+        } else {
+            socket->write("Login not found\n");
+        }
+    }
 }
 
 void Connection::timeToRead() {

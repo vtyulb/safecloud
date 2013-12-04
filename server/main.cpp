@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QTcpServer>
+#include <QPluginLoader>
 #include <tcpserver.h>
 
 int main(int argc, char *argv[]) {
