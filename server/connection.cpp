@@ -1,4 +1,6 @@
 #include "connection.h"
+#include <QSqlError>
+#include <QStringList>
 
 Connection::Connection(qintptr handle, QString login, QString password, QObject *parent): QThread(parent) {
     socketHandle = handle;
@@ -7,8 +9,12 @@ Connection::Connection(qintptr handle, QString login, QString password, QObject 
     mySqlPassword = password;
 }
 
+Connection::~Connection() {
+    delete socket;
+}
+
 void Connection::run() {
-    socket = new QTcpSocket(this);
+    socket = new QTcpSocket();
 
     if (!socket->setSocketDescriptor(socketHandle)) {
         qDebug() << "Can't establish connection with socket" << socketHandle;
@@ -31,11 +37,16 @@ void Connection::authorization() {
     }
     QByteArray hash = socket->readLine();
 
+    qDebug() << mySqlLogin << mySqlPassword;
+    qDebug() << QSqlDatabase::drivers();
+
     QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
-    db.setHostName("127.0.0.1");
+    db.setHostName("localhost");
     db.setDatabaseName("safecloud");
     db.setUserName(mySqlLogin);
     db.setPassword(mySqlPassword);
+
+    qDebug() << db.lastError();
     if (!db.open()) {
         qDebug() << "Failed to connect to database";
         socket->write("Corrupted database, please contact support\n");

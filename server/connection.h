@@ -8,21 +8,23 @@
 
 #define MAX_TIMEOUT 3000
 
-enum {
+enum State {
     Auth,
     Normal
-} state;
+};
 
 class Connection : public QThread {
     Q_OBJECT
 public:
     explicit Connection(qintptr handle, QString login, QString password, QObject *parent = 0);
+    ~Connection();
 
 private:
     qintptr socketHandle;
     QTcpSocket *socket;
     QString mySqlLogin;
     QString mySqlPassword;
+    State state;
 
     void run();
     void authorization();
