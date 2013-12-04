@@ -14,7 +14,7 @@ ServerConnection::ServerConnection(QObject *parent) :
     QObject::connect(socket, SIGNAL(disconnected()),
                                     this, SLOT(disconnectedFromServer()));
     QObject::connect(socket, SIGNAL(readyRead()),
-                                    this, SLOT(recieveMessage()));
+                                    this, SLOT(receiveMessage()));
 }
 
 ServerConnection::~ServerConnection()
@@ -22,14 +22,15 @@ ServerConnection::~ServerConnection()
     delete socket;
 }
 
-void ServerConnection::connect(int ip, int port)
+void ServerConnection::connect(const QString &address, int port)
 {
-    socket->connectToHost(QHostAddress(ip), port);
+    socket->connectToHost(address, port);
 }
 
 void ServerConnection::connectedToServer()
 {
     isConnected = true;
+    emit newLogMessage("You were connected to the server.");
 }
 
 void ServerConnection::disconnectedFromServer()
@@ -45,14 +46,33 @@ void ServerConnection::receiveMessage()
         qDebug() << "What's going on?";
         return;
     }
-    QByteArray line = socket->readLine();
+    QByteArray line = socket->readAll();
+    qDebug() << "message " << line;
     if (line.startsWith("auth"))
         isReadyToAuthorizate = true;
+    else
+        switch (line[0]) {
+        case 11:
+            emit newLogMessage("Authorization timeout.");
+            return;
+        case 12:
+            emit newLogMessage("Internal server error.");
+            return;
+        case 13:
+            emit newLogMessage("Password incorrect / Login not found.");
+            return;
+        case 200:
+            emit newLogMessage("You were authorizated.");
+            return;
+        default:
+            emit newLogMessage("Unknown message.");
+        }
 }
 
 void ServerConnection::handleSocketError(QAbstractSocket::SocketError error)
 {
-    emit newLogMessage(QString(error));
+    qDebug() << error;
+    emit newLogMessage(QString::number(error));
 }
 
 void ServerConnection::authorization(const QString &login, const QString &password)
@@ -65,10 +85,13 @@ void ServerConnection::authorization(const QString &login, const QString &passwo
 
     if (isReadyToAuthorizate)
     {
-        QByteArray loginHash = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha512);
-        qDebug() << loginHash;
+        QByteArray passwordHash = password.toLocal8Bit();
+        for (int i = 0; i < 1000000; i++)
+            passwordHash = QCryptographicHash::hash(passwordHash, QCryptographicHash::Sha512);
+        qDebug() << QString(passwordHash);
         socket->write((login + "\n").toUtf8());
-        socket->write(loginHash + "\n");
+        socket->write(passwordHash + "\n");
+        socket->flush();
     }
     else
     {
