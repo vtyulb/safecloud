@@ -1,6 +1,7 @@
 #include "serverconnection.h"
 
-ServerConnection::ServerConnection(QObject *parent)
+ServerConnection::ServerConnection(QObject *parent) :
+    QObject(parent)
 {
     socket = new QTcpSocket();
     isConnected = false;
@@ -49,11 +50,16 @@ void ServerConnection::receiveMessage()
         isReadyToAuthorizate = true;
 }
 
+void ServerConnection::handleSocketError(QAbstractSocket::SocketError error)
+{
+    emit newLogMessage(QString(error));
+}
+
 void ServerConnection::authorization(const QString &login, const QString &password)
 {
     if (!isConnected)
     {
-        newLogMessage("You aren't connected to the server!");
+        emit newLogMessage("You aren't connected to the server!");
         return;
     }
 
@@ -66,6 +72,6 @@ void ServerConnection::authorization(const QString &login, const QString &passwo
     }
     else
     {
-        newLogMessage("Server isn't ready for authorization.");
+        emit newLogMessage("Server isn't ready for authorization.");
     }
 }
