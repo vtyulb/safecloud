@@ -28,12 +28,15 @@ void Connection::run() {
     socket->write("auth?v=1\n");
     QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(timeToRead()));
     QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(quit()));
+    if (socket->canReadLine())
+        timeToRead();
+
     exec();
 }
 
 void Connection::authorization() {
     QByteArray login = socket->readLine();
-    if (!socket->waitForReadyRead(MAX_TIMEOUT)) {
+    if (!socket->canReadLine() && !socket->waitForReadyRead(MAX_TIMEOUT)) {
         socket->write(TIMEOUT_ERROR);
         qDebug() << "Too slow!";
         return;
@@ -54,9 +57,8 @@ void Connection::authorization() {
     if (!db.open()) {
         qDebug() << "Failed to connect to database" << db.lastError();
         socket->write(INTERNAL_SERVER_ERROR);
-        return;
     } else {
-        QSqlQuery query(QString("SELECT PASSWORD FROM `main` WHERE (LOGIN=%1)").arg(QString(login)), db);
+        QSqlQuery query(QString("SELECT PASSWORD FROM `main` WHERE (USER_LOGIN='%1')").arg(QString(login)), db);
         query.exec();
         if (query.next()) {
             if (query.value(0).toString() == hash) {
@@ -72,9 +74,13 @@ void Connection::authorization() {
             qDebug() << "Login not found" << socket->peerAddress();
         }
     }
+    socket->flush();
 }
 
 void Connection::timeToRead() {
+    if (!socket->canReadLine())
+        return;
+
     if (state == Auth)
         authorization();
     else {

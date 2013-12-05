@@ -1,6 +1,6 @@
 server -> client "auth?v=xx\n"
 client -> server "Login\n"
-client -> server "Password\n" (password hashed by blowfish with salt "Login" and 1000000 rounds)
+client -> server "Password\n" (password hashed by sha512 with salt "Login" and 100000 rounds)
 
 server -> client one byte
 11 - timeout

@@ -9,7 +9,7 @@
 const int MAX_TIMEOUT = 30000;
 const QByteArray TIMEOUT_ERROR(1, 11);
 const QByteArray INTERNAL_SERVER_ERROR(1, 12);
-const QByteArray OK(1, 200);
+const QByteArray OK(1, 1);
 const QByteArray FAIL(1, 13);
 
 
