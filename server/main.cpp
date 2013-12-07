@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QTcpServer>
 #include <QPluginLoader>
+#include <QSslConfiguration>
 #include <tcpserver.h>
 
 int main(int argc, char *argv[]) {

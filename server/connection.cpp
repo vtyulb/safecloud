@@ -2,7 +2,13 @@
 #include <QSqlError>
 #include <QStringList>
 #include <QSqlQuery>
+#include <QSslSocket>
 #include <QHostAddress>
+#include <QSqlDatabase>
+#include <QDebug>
+#include <QSslConfiguration>
+#include <QSslKey>
+#include <QFile>
 
 Connection::Connection(qintptr handle, QString login, QString password, QObject *parent): QThread(parent) {
     socketHandle = handle;
@@ -13,24 +19,35 @@ Connection::Connection(qintptr handle, QString login, QString password, QObject 
 
 Connection::~Connection() {
     delete socket;
+    qDebug() << "Connection closed";
 }
 
 void Connection::run() {
-    socket = new QTcpSocket();
+    socket = new QSslSocket();
+
+    socket->setPeerVerifyMode(QSslSocket::VerifyNone);
+    socket->setProtocol(QSsl::SslV3);
 
     if (!socket->setSocketDescriptor(socketHandle)) {
         qDebug() << "Can't establish connection with socket" << socketHandle;
         return;
     }
 
-    //TODO: version protocol
+    socket->setPrivateKey("safecloud-server.pem", QSsl::Rsa);
+    socket->setLocalCertificate("safecloud-server.pem");
+    socket->startServerEncryption();
+
+    if (!socket->waitForEncrypted(1000)) {
+        qDebug() << "Can't create encrypted tunnel";
+        qDebug() << socket->sslErrors();
+        return;
+    }
+        qDebug() << "Encrypted tunnel created";
+
+    QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(quit()));
+    QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(timeToRead()));
 
     socket->write("auth?v=1\n");
-    QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(timeToRead()));
-    QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(quit()));
-    if (socket->canReadLine())
-        timeToRead();
-
     exec();
 }
 
@@ -84,6 +101,6 @@ void Connection::timeToRead() {
     if (state == Auth)
         authorization();
     else {
-
+        qDebug() << socket->readLine();
     }
 }

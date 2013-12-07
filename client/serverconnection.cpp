@@ -1,18 +1,28 @@
+#include <QSslSocket>
+#include <QSslKey>
+#include <QSslConfiguration>
+#include <QFile>
 #include "serverconnection.h"
 
 ServerConnection::ServerConnection(QObject *parent) :
     QObject(parent)
 {
-    socket = new QTcpSocket();
+    socket = new QSslSocket();
+    socket->setProtocol(QSsl::SslV3);
+    socket->setPeerVerifyMode(QSslSocket::VerifyNone);
+
     isConnected = false;
     isReadyToAuthorizate = false;
 
     QObject::connect(socket, SIGNAL(error(QAbstractSocket::SocketError)),
                                     this, SLOT(handleSocketError(QAbstractSocket::SocketError)));
-    QObject::connect(socket, SIGNAL(connected()),
+
+    QObject::connect(socket, SIGNAL(encrypted()),
                                     this, SLOT(connectedToServer()));
+
     QObject::connect(socket, SIGNAL(disconnected()),
                                     this, SLOT(disconnectedFromServer()));
+
     QObject::connect(socket, SIGNAL(readyRead()),
                                     this, SLOT(receiveMessage()));
 }
@@ -24,7 +34,7 @@ ServerConnection::~ServerConnection()
 
 void ServerConnection::connect(const QString &address, int port)
 {
-    socket->connectToHost(address, port);
+    socket->connectToHostEncrypted(address, port);
 }
 
 void ServerConnection::connectedToServer()

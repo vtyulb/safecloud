@@ -2,8 +2,8 @@
 #define SERVERCONNECTION_H
 
 #include <QString>
-#include <QTcpSocket>
 #include <QHostAddress>
+#include <QSslSocket>
 #include <QCryptographicHash>
 
 class ServerConnection : public QObject
@@ -19,7 +19,7 @@ public:
 private:
     bool isConnected;
     bool isReadyToAuthorizate;
-    QTcpSocket *socket;
+    QSslSocket *socket;
 
 private slots:
     void handleSocketError(QAbstractSocket::SocketError error);

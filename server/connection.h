@@ -2,9 +2,6 @@
 #define CONNECTION_H
 
 #include <QThread>
-#include <QTcpSocket>
-#include <QDebug>
-#include <QSqlDatabase>
 
 const int MAX_TIMEOUT = 30000;
 const QByteArray TIMEOUT_ERROR(1, 11);
@@ -18,6 +15,8 @@ enum State {
     Normal
 };
 
+class QSslSocket;
+
 class Connection : public QThread {
     Q_OBJECT
 public:
@@ -26,7 +25,7 @@ public:
 
 private:
     qintptr socketHandle;
-    QTcpSocket *socket;
+    QSslSocket *socket;
     QString mySqlLogin;
     QString mySqlPassword;
     State state;
