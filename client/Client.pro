@@ -15,9 +15,13 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    serverconnection.cpp
+    serverconnection.cpp \
+    crypter.cpp
 
 HEADERS  += mainwindow.h \
-    serverconnection.h
+    serverconnection.h \
+    crypter.h
 
 FORMS    += mainwindow.ui
+
+LIBS += -lpthread -lcryptopp
