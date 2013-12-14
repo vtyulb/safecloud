@@ -2,7 +2,14 @@
 #include <QSslKey>
 #include <QSslConfiguration>
 #include <QFile>
+#include <QNetworkRequest>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include "serverconnection.h"
+#include "crypter.h"
 
 ServerConnection::ServerConnection(QObject *parent) :
     QObject(parent)
@@ -65,6 +72,10 @@ void ServerConnection::receiveMessage()
         case 1:
             emit newLogMessage("You were authorizated.");
             return;
+        case 2:
+            emit newLogMessage("Server wants to get keys.");
+            generateKeys();
+            return;
         case 11:
             emit newLogMessage("Authorization timeout.");
             return;
@@ -87,6 +98,7 @@ void ServerConnection::handleSocketError(QAbstractSocket::SocketError error)
 
 void ServerConnection::authorization(const QString &login, const QString &password)
 {
+    this->password = password;
     if (!isConnected)
     {
         emit newLogMessage("You aren't connected to the server!");
@@ -107,4 +119,21 @@ void ServerConnection::authorization(const QString &login, const QString &passwo
     {
         emit newLogMessage("Server isn't ready for authorization.");
     }
+}
+
+void ServerConnection::generateKeys() {
+    QNetworkAccessManager *manager = new QNetworkAccessManager;
+    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)), this, SLOT(keysGenerated(QNetworkReply*)));
+    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)), manager, SLOT(deleteLater()));
+
+    QNetworkRequest request(QUrl("http://127.0.0.1:8888/api?method=get_secrets&type=encryption"));
+    request.setRawHeader("Authorization", "Basic " + QByteArray("login:password").toBase64());
+    manager->get(request);
+}
+
+void ServerConnection::keysGenerated(QNetworkReply *reply) {
+    QJsonDocument keys = QJsonDocument::fromJson(reply->readAll());
+    socket->write(keys.object()["encryption"].toString().toUtf8().toBase64() + "\n" +
+            Crypter::crypt(keys.object()["read_write"].toString(), password).toBase64() + "\n" +
+            Crypter::crypt(keys.object()["read_only"].toString(), password).toBase64() + "\n");
 }

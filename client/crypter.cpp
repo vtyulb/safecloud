@@ -9,7 +9,7 @@ Crypter::Crypter() {
 QByteArray Crypter::crypt(QString textToEncrypt, QString password) {
     byte key[CryptoPP::AES::DEFAULT_KEYLENGTH];
     byte iv[CryptoPP::AES::BLOCKSIZE];
-
+    
     memset(key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
     memset(iv, 0x00, CryptoPP::AES::BLOCKSIZE);
 

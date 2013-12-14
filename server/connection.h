@@ -8,10 +8,12 @@ const QByteArray TIMEOUT_ERROR(1, 11);
 const QByteArray INTERNAL_SERVER_ERROR(1, 12);
 const QByteArray OK(1, 1);
 const QByteArray FAIL(1, 13);
+const QByteArray GENERATE_KEYS(1, 2);
 
 
 enum State {
     Auth,
+    NoKeys,
     Normal
 };
 
@@ -30,8 +32,11 @@ private:
     QString mySqlPassword;
     State state;
 
+    QByteArray login;
+
     void run();
     void authorization();
+    void checkSQLInjection(QString);
 
 private slots:
     void timeToRead();

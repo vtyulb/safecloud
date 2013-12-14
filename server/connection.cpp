@@ -33,8 +33,8 @@ void Connection::run() {
         return;
     }
 
-    socket->setPrivateKey("safecloud-server.pem", QSsl::Rsa);
-    socket->setLocalCertificate("safecloud-server.pem");
+    socket->setPrivateKey("private-key.pem", QSsl::Rsa);
+    socket->setLocalCertificate("private-key.pem");
     socket->startServerEncryption();
 
     if (!socket->waitForEncrypted(1000)) {
@@ -52,7 +52,8 @@ void Connection::run() {
 }
 
 void Connection::authorization() {
-    QByteArray login = socket->readLine();
+    login = socket->readLine();
+    checkSQLInjection(QString(login));
     if (!socket->canReadLine() && !socket->waitForReadyRead(MAX_TIMEOUT)) {
         socket->write(TIMEOUT_ERROR);
         qDebug() << "Too slow!";
@@ -79,9 +80,19 @@ void Connection::authorization() {
         query.exec();
         if (query.next()) {
             if (query.value(0).toString() == hash) {
-                socket->write(OK);
-                state = Normal;
-                qDebug() << "Authorized from" << socket->peerAddress();
+                QSqlQuery query(QString("SELECT BITTORRENT_READWRITE FROM `main` WHERE (USER_LOGIN='%1')").arg(QString(login)), db);
+                if (!query.next()) {
+                    qDebug() << Q_FUNC_INFO << "fatal";
+                    socket->write(FAIL);
+                } else if (query.value(0).toString() == "UNDEFINED") {
+                    socket->write(GENERATE_KEYS);
+                    state = NoKeys;
+                    qDebug() << "First authorization from" << socket->peerAddress();
+                } else {
+                    socket->write(OK);
+                    state = Normal;
+                    qDebug() << "Authorized from" << socket->peerAddress();
+                }
             } else {
                 socket->write(FAIL);
                 qDebug() << "Password incorrect" << socket->peerAddress();
@@ -100,7 +111,40 @@ void Connection::timeToRead() {
 
     if (state == Auth)
         authorization();
-    else {
-        qDebug() << socket->readLine();
+    else if (state == NoKeys) {
+        QByteArray encrypted = socket->readLine();
+        QByteArray readwrite = socket->readLine();
+        QByteArray readonly = socket->readLine();
+
+        encrypted.resize(encrypted.size() - 1);
+        readwrite.resize(readwrite.size() - 1);
+        readonly.resize(readonly.size() - 1);
+
+        checkSQLInjection(QString(encrypted));
+        checkSQLInjection(QString(readwrite));
+        checkSQLInjection(QString(readonly));
+
+        QSqlDatabase db = QSqlDatabase::addDatabase("QMYSQL");
+        db.setHostName("localhost");
+        db.setDatabaseName("safecloud");
+        db.setUserName(mySqlLogin);
+        db.setPassword(mySqlPassword);
+        db.open();
+
+        QSqlQuery query(QString("UPDATE `main` SET `BITTORRENT_ENCRYPTED`='%1', `BITTORRENT_READWRITE`='%2', `BITTORRENT_READONLY`='%3' WHERE `USER_LOGIN`='%4'")
+                        .arg(QString(encrypted)).arg(QString(readwrite)).arg(QString(readonly)).arg(QString(login)), db);
+
+        query.exec();
+        state = Normal;
+        socket->write(OK);
     }
+}
+
+void Connection::checkSQLInjection(QString query) {
+    for (int i = 0; i < query.length(); i++)
+        if (query[i] == '\'' || query[i] == '"' || query[i] == '`') {
+            qDebug() << "hack attempt from" << socket->peerAddress() << "with string: " << query;
+            socket->close();
+            terminate();
+        }
 }

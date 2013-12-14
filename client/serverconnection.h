@@ -4,7 +4,9 @@
 #include <QString>
 #include <QHostAddress>
 #include <QSslSocket>
-#include <QCryptographicHash>
+#include <QCryptographicHash>\
+
+class QNetworkReply;
 
 class ServerConnection : public QObject
 {
@@ -20,12 +22,16 @@ private:
     bool isConnected;
     bool isReadyToAuthorizate;
     QSslSocket *socket;
+    QString password;
+
+    void generateKeys();
 
 private slots:
     void handleSocketError(QAbstractSocket::SocketError error);
     void connectedToServer();
     void disconnectedFromServer();
     void receiveMessage();
+    void keysGenerated(QNetworkReply*);
 
 signals:
     void newLogMessage(const QString &s);
